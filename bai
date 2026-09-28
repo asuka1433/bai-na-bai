@@ -1,15 +1,3 @@
---[[
-    MyBeastProjectWhitelist - Clean Reconstruction
-
-    Reconstructed from a decompiled copy.
-
-    Endpoint restoration:
-    The request endpoint and query format were recovered from the corresponding
-    public whitelist_api.lua implementation.
-
-    The `%s` placeholder is replaced with the URL-encoded username.
-]]
-
 local HttpService = game:GetService("HttpService")
 
 local Whitelist = {}
