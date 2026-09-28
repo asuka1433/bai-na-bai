@@ -2,6 +2,7 @@ local HttpService = game:GetService("HttpService")
 
 local Whitelist = {}
 
+--
 -- =========================================================
 -- Configuration
 -- =========================================================
