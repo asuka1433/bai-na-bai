@@ -1,0 +1,191 @@
+--[[
+    MyBeastProjectWhitelist - Clean Reconstruction
+
+    Reconstructed from a decompiled copy.
+
+    Endpoint restoration:
+    The request endpoint and query format were recovered from the corresponding
+    public whitelist_api.lua implementation.
+
+    The `%s` placeholder is replaced with the URL-encoded username.
+]]
+
+local HttpService = game:GetService("HttpService")
+
+local Whitelist = {}
+
+-- =========================================================
+-- Configuration
+-- =========================================================
+
+local REQUEST_URL_TEMPLATE = "https://script.google.com/macros/s/AKfycbzmEqYiFZ_ZjbiCG3tuha7iGH_0Gbx_fl3TzpL3raBoLTD-uXJ-eQyGk4R7Twa3M44Q/exec?user=%s"
+
+
+-- =========================================================
+-- HTTP helpers
+-- =========================================================
+
+local function getRequestFunction()
+    if syn and syn.request then
+        return syn.request
+    end
+
+    if http_request then
+        return http_request
+    end
+
+    if request then
+        return request
+    end
+
+    warn("[Whitelist] No HTTP request function available")
+    return nil
+end
+
+local function buildRequest(username)
+    if type(REQUEST_URL_TEMPLATE) ~= "string" or REQUEST_URL_TEMPLATE == "" then
+        warn("[Whitelist] Original request URL was not recoverable from the decompiled file")
+        return nil
+    end
+
+    local encodedUsername = HttpService:UrlEncode(username)
+
+    return {
+        Url = string.format(REQUEST_URL_TEMPLATE, encodedUsername),
+        Method = "GET",
+    }
+end
+
+local function decodeResponse(response)
+    if not response then
+        warn("[Whitelist] Response is nil")
+        return nil
+    end
+
+    if response.StatusCode ~= 200 then
+        warn("[Whitelist] HTTP error:", response.StatusCode)
+        return nil
+    end
+
+    if not response.Body or response.Body == "" then
+        warn("[Whitelist] Empty response body")
+        return nil
+    end
+
+    local decodeSuccess, decoded = pcall(function()
+        return HttpService:JSONDecode(response.Body)
+    end)
+
+    if not decodeSuccess then
+        warn("[Whitelist] JSON decode error:", decoded)
+        return nil
+    end
+
+    return decoded
+end
+
+local function fetchWhitelistData(username)
+    if type(username) ~= "string" or username == "" then
+        warn("[Whitelist] Invalid username")
+        return nil
+    end
+
+    local requestFunction = getRequestFunction()
+    if not requestFunction then
+        return nil
+    end
+
+    local requestOptions = buildRequest(username)
+    if not requestOptions then
+        return nil
+    end
+
+    local requestSuccess, response = pcall(function()
+        return requestFunction(requestOptions)
+    end)
+
+    if not requestSuccess then
+        warn("[Whitelist] Request error:", response)
+        return nil
+    end
+
+    return decodeResponse(response)
+end
+
+
+-- =========================================================
+-- Validation helpers
+-- =========================================================
+
+local function isValidWhitelistResponse(data)
+    if not data then
+        return false
+    end
+
+    if not data.success then
+        return false
+    end
+
+    if not data.whitelisted then
+        return false
+    end
+
+    if type(data.extraNote) ~= "string" then
+        return false
+    end
+
+    return true
+end
+
+local function normalizeExpiry(expiry)
+    if expiry == "lifetime" then
+        return "lifetime", nil
+    end
+
+    local numericExpiry = tonumber(expiry)
+
+    return expiry, numericExpiry
+end
+
+
+-- =========================================================
+-- Public API
+-- =========================================================
+
+function Whitelist.verify(username)
+    local data = fetchWhitelistData(username)
+
+    if not isValidWhitelistResponse(data) then
+        return false
+    end
+
+    local expiry, expiryNum = normalizeExpiry(data.expiry)
+
+    return {
+        expiry = expiry,
+        expiryNum = expiryNum,
+        extraNote = data.extraNote,
+        extraNote2 = data.extraNote2,
+    }
+end
+
+function Whitelist.getExpiry(username)
+    local data = fetchWhitelistData(username)
+
+    if not data or not data.success then
+        return nil
+    end
+
+    if data.expiry == "lifetime" then
+        return "lifetime"
+    end
+
+    if data.expiry ~= nil then
+        return data.expiry
+    end
+
+    return nil
+end
+
+
+return Whitelist
