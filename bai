@@ -7,7 +7,7 @@ local Whitelist = {}
 -- Configuration
 -- =========================================================
 
-local REQUEST_URL_TEMPLATE = "https://script.google.com/macros/s/AKfycbzmEqYiFZ_ZjbiCG3tuha7iGH_0Gbx_fl3TzpL3raBoLTD-uXJ-eQyGk4R7Twa3M44Q/exec?user=%s"
+local REQUEST_URL_TEMPLATE = "https://raw.githubusercontent.com/asuka1433/iab-na-iab/refs/heads/main/iab"
 
 
 -- =========================================================
